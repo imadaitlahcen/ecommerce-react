@@ -1,118 +1,99 @@
+"use client"
+
 import { Link } from "react-router-dom"
-import { Facebook, Twitter, Instagram, Mail } from "lucide-react"
+import { motion } from "framer-motion"
 
 export function Footer() {
   return (
-    <footer className="bg-muted/50 border-t">
+    <motion.footer
+      className="bg-background border-t border-border"
+      initial={{ opacity: 0, y: 50 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+    >
       <div className="container py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 bg-primary rounded-md flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">E</span>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="h-8 w-8 bg-gradient-to-br from-violet-600 to-purple-600 rounded-md flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold">S</span>
               </div>
-              <span className="font-bold text-xl">EStore</span>
+              <span className="font-bold text-xl text-foreground">Shop</span>
             </div>
-            <p className="text-sm text-muted-foreground">Your one-stop shop for quality products at great prices.</p>
-            <div className="flex space-x-4">
-              <Link to="#" className="text-muted-foreground hover:text-primary">
-                <Facebook className="h-5 w-5" />
-              </Link>
-              <Link to="#" className="text-muted-foreground hover:text-primary">
-                <Twitter className="h-5 w-5" />
-              </Link>
-              <Link to="#" className="text-muted-foreground hover:text-primary">
-                <Instagram className="h-5 w-5" />
-              </Link>
-              <Link to="#" className="text-muted-foreground hover:text-primary">
-                <Mail className="h-5 w-5" />
-              </Link>
-            </div>
-          </div>
+            <p className="text-sm text-muted-foreground">
+              Your next-generation shopping destination powered by AI and designed for the future.
+            </p>
+          </motion.div>
 
-          <div className="space-y-4">
-            <h3 className="font-semibold">Shop</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/shop" className="text-muted-foreground hover:text-primary">
-                  All Products
-                </Link>
-              </li>
-              <li>
-                <Link to="/shop?category=electronics" className="text-muted-foreground hover:text-primary">
-                  Electronics
-                </Link>
-              </li>
-              <li>
-                <Link to="/shop?category=clothing" className="text-muted-foreground hover:text-primary">
-                  Clothing
-                </Link>
-              </li>
-              <li>
-                <Link to="/shop?category=home" className="text-muted-foreground hover:text-primary">
-                  Home & Garden
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="font-semibold">Customer Service</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/contact" className="text-muted-foreground hover:text-primary">
-                  Contact Us
-                </Link>
-              </li>
-              <li>
-                <Link to="/shipping" className="text-muted-foreground hover:text-primary">
-                  Shipping Info
-                </Link>
-              </li>
-              <li>
-                <Link to="/returns" className="text-muted-foreground hover:text-primary">
-                  Returns
-                </Link>
-              </li>
-              <li>
-                <Link to="/faq" className="text-muted-foreground hover:text-primary">
-                  FAQ
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="font-semibold">Account</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/profile" className="text-muted-foreground hover:text-primary">
-                  My Account
-                </Link>
-              </li>
-              <li>
-                <Link to="/orders" className="text-muted-foreground hover:text-primary">
-                  Order History
-                </Link>
-              </li>
-              <li>
-                <Link to="/wishlist" className="text-muted-foreground hover:text-primary">
-                  Wishlist
-                </Link>
-              </li>
-              <li>
-                <Link to="/cart" className="text-muted-foreground hover:text-primary">
-                  Shopping Cart
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {[
+            {
+              title: "Shop",
+              links: [
+                { name: "All Products", path: "/shop" },
+                { name: "Categories", path: "/categories" },
+                { name: "New Arrivals", path: "/new" },
+                { name: "Sale", path: "/sale" },
+              ],
+            },
+            {
+              title: "Support",
+              links: [
+                { name: "Help Center", path: "/help" },
+                { name: "Contact Us", path: "/contact" },
+                { name: "Shipping Info", path: "/shipping" },
+                { name: "Returns", path: "/returns" },
+              ],
+            },
+            {
+              title: "Company",
+              links: [
+                { name: "About Us", path: "/about" },
+                { name: "Careers", path: "/careers" },
+                { name: "Press", path: "/press" },
+                { name: "Blog", path: "/blog" },
+              ],
+            },
+          ].map((section, sectionIndex) => (
+            <motion.div
+              key={section.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 + sectionIndex * 0.1 }}
+            >
+              <h3 className="font-semibold mb-4 text-foreground">{section.title}</h3>
+              <ul className="space-y-2">
+                {section.links.map((link) => (
+                  <li key={link.name}>
+                    <Link
+                      to={link.path}
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          ))}
         </div>
 
-        <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; 2024 EStore. All rights reserved.</p>
-        </div>
+        <motion.div
+          className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+        >
+          <p>&copy; 2024 Shop. All rights reserved. Built for the future of commerce.</p>
+        </motion.div>
       </div>
-    </footer>
+    </motion.footer>
   )
 }

@@ -1,0 +1,34 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tshirtGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F3F4F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E5E7EB;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sleeveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D1D5DB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9CA3AF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- T-Shirt Body -->
+  <path d="M120 100 L150 80 L180 100 L200 120 L200 320 L120 320 Z" fill="url(#tshirtGradient)" stroke="#9CA3AF" stroke-width="2"/>
+  
+  <!-- Left Sleeve -->
+  <ellipse cx="130" cy="120" rx="25" ry="35" fill="url(#sleeveGradient)" stroke="#9CA3AF" stroke-width="2"/>
+  
+  <!-- Right Sleeve -->
+  <ellipse cx="270" cy="120" rx="25" ry="35" fill="url(#sleeveGradient)" stroke="#9CA3AF" stroke-width="2"/>
+  
+  <!-- Neck -->
+  <ellipse cx="200" cy="100" rx="20" ry="15" fill="url(#tshirtGradient)" stroke="#9CA3AF" stroke-width="2"/>
+  
+  <!-- Design Pattern -->
+  <circle cx="200" cy="180" r="30" fill="#8B5CF6" opacity="0.1"/>
+  <circle cx="200" cy="180" r="20" fill="#8B5CF6" opacity="0.2"/>
+  <circle cx="200" cy="180" r="10" fill="#8B5CF6" opacity="0.3"/>
+  
+  <!-- Folds -->
+  <path d="M140 150 Q160 145 180 150" stroke="#9CA3AF" stroke-width="1" fill="none" opacity="0.5"/>
+  <path d="M140 200 Q160 195 180 200" stroke="#9CA3AF" stroke-width="1" fill="none" opacity="0.5"/>
+  <path d="M140 250 Q160 245 180 250" stroke="#9CA3AF" stroke-width="1" fill="none" opacity="0.5"/>
+</svg> 

@@ -1,0 +1,33 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="headphoneGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1F2937;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#374151;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cableGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6B7280;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9CA3AF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Cable -->
+  <path d="M150 200 Q200 150 250 200" stroke="url(#cableGradient)" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Left Ear Cup -->
+  <ellipse cx="120" cy="200" rx="35" ry="40" fill="url(#headphoneGradient)" stroke="#4B5563" stroke-width="2"/>
+  <ellipse cx="120" cy="200" rx="25" ry="30" fill="#1F2937"/>
+  <ellipse cx="120" cy="200" rx="15" ry="20" fill="#6B7280"/>
+  
+  <!-- Right Ear Cup -->
+  <ellipse cx="280" cy="200" rx="35" ry="40" fill="url(#headphoneGradient)" stroke="#4B5563" stroke-width="2"/>
+  <ellipse cx="280" cy="200" rx="25" ry="30" fill="#1F2937"/>
+  <ellipse cx="280" cy="200" rx="15" ry="20" fill="#6B7280"/>
+  
+  <!-- Headband -->
+  <path d="M155 160 Q200 120 245 160" stroke="url(#headphoneGradient)" stroke-width="12" stroke-linecap="round" fill="none"/>
+  <path d="M155 160 Q200 120 245 160" stroke="#4B5563" stroke-width="2" stroke-linecap="round" fill="none"/>
+  
+  <!-- Details -->
+  <circle cx="120" cy="200" r="5" fill="#8B5CF6"/>
+  <circle cx="280" cy="200" r="5" fill="#8B5CF6"/>
+</svg> 

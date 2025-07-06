@@ -1,12 +1,16 @@
 "use client"
 
+import { motion } from "framer-motion"
+import { Button } from "./ui/button"
+import { Card, CardContent, CardFooter, CardHeader } from "./ui/card"
+import { Badge } from "./ui/badge"
+import { Heart, ShoppingCart } from "lucide-react"
 import { Link } from "react-router-dom"
-import { Star, ShoppingCart } from "lucide-react"
-import { Button } from "../components/ui/button"
-import { Card, CardContent, CardFooter } from "../components/ui/card"
-import { Badge } from "../components/ui/badge"
+import { useState } from "react"
+import { useTheme } from "../context/ThemeContext"
+import { useLikes } from "../context/LikesContext"
 import { useCart } from "../context/CartContext"
-import { useToast } from "../context/ToastContext"
+import { AddToCartDialog } from "./AddToCartDialog"
 import type { Product } from "../data/products"
 
 interface ProductCardProps {
@@ -14,63 +18,141 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { theme } = useTheme()
+  const { isLiked, toggleLike } = useLikes()
   const { addItem } = useCart()
-  const { toast } = useToast()
+  const [showDialog, setShowDialog] = useState(false)
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    console.log('Add to cart clicked for product:', product.name, product.id)
     addItem(product)
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart.`,
-    })
+    setShowDialog(true)
+  }
+
+  const handleLikeClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleLike(product.id)
   }
 
   return (
-    <Card className="group overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="relative aspect-square overflow-hidden">
-        <Link to={`/product/${product.id}`}>
-          <img
-            src={product.image || "/placeholder.svg"}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        </Link>
-        {product.discount && <Badge className="absolute top-2 left-2 bg-red-500">-{product.discount}%</Badge>}
-      </div>
+    <>
+      <motion.div
+        whileHover={{ y: -4 }}
+        transition={{ duration: 0.2 }}
+        className="group"
+      >
+        <Card className={`overflow-hidden transition-all duration-200 ${
+          theme === 'light'
+            ? 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-lg'
+            : 'bg-gray-800 border-gray-700 hover:border-gray-600 hover:shadow-xl'
+        }`}>
+          <CardHeader className="p-0">
+            <div className="relative overflow-hidden">
+              <Link to={`/product/${product.id}`}>
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+              </Link>
+              
+              {/* Like Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`absolute top-2 right-2 h-8 w-8 rounded-full transition-all duration-200 ${
+                  theme === 'light'
+                    ? 'bg-white/90 hover:bg-white text-gray-600 hover:text-red-500'
+                    : 'bg-gray-800/90 hover:bg-gray-800 text-gray-400 hover:text-red-400'
+                } ${isLiked(product.id) ? 'text-red-500' : ''}`}
+                onClick={handleLikeClick}
+                aria-label="Toggle like"
+              >
+                <Heart className={`h-4 w-4 transition-all duration-200 ${
+                  isLiked(product.id) ? 'fill-current' : ''
+                }`} />
+              </Button>
 
-      <CardContent className="p-4">
-        <div className="space-y-2">
-          <Link to={`/product/${product.id}`}>
-            <h3 className="font-semibold line-clamp-2 hover:text-primary transition-colors">{product.name}</h3>
-          </Link>
+              {/* Category Badge */}
+              <div className="absolute top-2 left-2">
+                <Badge variant="secondary" className="text-xs">
+                  {product.category}
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
 
-          <div className="flex items-center gap-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                className={`h-4 w-4 ${
-                  i < Math.floor(product.rating) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"
-                }`}
-              />
-            ))}
-            <span className="text-sm text-muted-foreground ml-1">({product.reviews})</span>
-          </div>
+          <CardContent className="p-4">
+            <Link to={`/product/${product.id}`}>
+              <h3 className={`font-semibold text-lg mb-2 line-clamp-2 transition-colors duration-200 ${
+                theme === 'light'
+                  ? 'text-gray-900 group-hover:text-gray-700'
+                  : 'text-white group-hover:text-gray-300'
+              }`}>
+                {product.name}
+              </h3>
+            </Link>
+            
+            <p className={`text-sm mb-3 line-clamp-2 ${
+              theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+            }`}>
+              {product.description}
+            </p>
+            
+            <div className="flex items-center justify-between">
+              <span className={`text-xl font-bold ${
+                theme === 'light' ? 'text-gray-900' : 'text-white'
+              }`}>
+                ${product.price}
+              </span>
+              
+              <div className="flex items-center space-x-1">
+                {[...Array(5)].map((_, i) => (
+                  <svg
+                    key={i}
+                    className={`w-4 h-4 ${
+                      i < Math.floor(product.rating)
+                        ? 'text-yellow-400 fill-current'
+                        : theme === 'light'
+                          ? 'text-gray-300'
+                          : 'text-gray-600'
+                    }`}
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+                <span className={`text-sm ml-1 ${
+                  theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                }`}>
+                  ({product.rating})
+                </span>
+              </div>
+            </div>
+          </CardContent>
 
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-lg">${product.price}</span>
-            {product.originalPrice && (
-              <span className="text-sm text-muted-foreground line-through">${product.originalPrice}</span>
-            )}
-          </div>
-        </div>
-      </CardContent>
+          <CardFooter className="p-4 pt-0">
+            <Button
+              onClick={handleAddToCart}
+              className="w-full group/btn transition-all duration-200"
+              size="lg"
+            >
+              <ShoppingCart className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200" />
+              Add to Cart
+            </Button>
+          </CardFooter>
+        </Card>
+      </motion.div>
 
-      <CardFooter className="p-4 pt-0">
-        <Button onClick={handleAddToCart} className="w-full" size="sm">
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          Add to Cart
-        </Button>
-      </CardFooter>
-    </Card>
+      {/* Add to Cart Dialog */}
+      <AddToCartDialog
+        isOpen={showDialog}
+        onClose={() => setShowDialog(false)}
+        product={product}
+      />
+    </>
   )
 }

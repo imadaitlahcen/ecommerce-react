@@ -1,0 +1,25 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fashionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#EC4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F472B6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Hanger -->
+  <path d="M20 16 L44 16 L40 24 L36 24 L32 32 L28 32 L24 24 L20 24 Z" fill="url(#fashionGradient)" stroke="#BE185D" stroke-width="2"/>
+  
+  <!-- Clothes -->
+  <rect x="24" y="32" width="16" height="24" rx="2" fill="url(#fashionGradient)" opacity="0.7"/>
+  
+  <!-- Neck -->
+  <ellipse cx="32" cy="34" rx="4" ry="2" fill="url(#fashionGradient)" opacity="0.9"/>
+  
+  <!-- Sleeves -->
+  <ellipse cx="26" cy="36" rx="3" ry="6" fill="url(#fashionGradient)" opacity="0.6"/>
+  <ellipse cx="38" cy="36" rx="3" ry="6" fill="url(#fashionGradient)" opacity="0.6"/>
+  
+  <!-- Design Pattern -->
+  <circle cx="32" cy="44" r="3" fill="#BE185D" opacity="0.3"/>
+  <circle cx="32" cy="44" r="1.5" fill="#BE185D" opacity="0.5"/>
+</svg> 
