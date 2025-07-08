@@ -10,6 +10,9 @@ import { ArrowRight, Zap, Shield, Truck, Star, Sparkles, ShoppingBag } from "luc
 import { products } from "../data/products"
 import { useEffect, useState } from "react"
 import { useTheme } from "../context/ThemeContext"
+import { productsService } from '../services/api'
+import { Card, CardContent, CardHeader } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
 
 const fadeInUp = {
   initial: { opacity: 0, y: 60 },
@@ -55,8 +58,31 @@ const Counter = ({ end, duration = 2, suffix = "" }: { end: number; duration?: n
   )
 }
 
-export default function Home() {
-  const featuredProducts = products.slice(0, 8)
+// Interface for API products (matches backend schema)
+interface ApiProduct {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+  brand: string;
+  isFeatured: boolean;
+  isOnSale: boolean;
+  discountPercentage?: number;
+  rating: number;
+  reviewCount: number;
+  stock: number;
+  minStock: number;
+  sku: string;
+  isActive: boolean;
+}
+
+const Home: React.FC = () => {
+  const [featuredProducts, setFeaturedProducts] = useState<ApiProduct[]>([])
+  const [onSaleProducts, setOnSaleProducts] = useState<ApiProduct[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const { theme } = useTheme()
 
   const categories = [
@@ -89,6 +115,60 @@ export default function Home() {
       path: "/shop?category=fitness"
     }
   ]
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        
+        console.log('Starting to fetch products...');
+        
+        // Récupérer les produits en vedette
+        console.log('Fetching featured products...');
+        const featured = await productsService.getFeatured()
+        console.log('Featured products received:', featured);
+        setFeaturedProducts(featured)
+        
+        // Récupérer les produits en promotion
+        console.log('Fetching on-sale products...');
+        const onSale = await productsService.getOnSale()
+        console.log('On-sale products received:', onSale);
+        setOnSaleProducts(onSale)
+      } catch (err: any) {
+        console.error('Detailed error in fetchProducts:', err);
+        console.error('Error response:', err.response);
+        console.error('Error message:', err.message);
+        setError(err.message || 'Erreur lors du chargement des produits')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Réessayer
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -458,9 +538,9 @@ export default function Home() {
               whileInView="animate"
               viewport={{ once: true, margin: "-50px" }}
             >
-              {featuredProducts.map((product, index) => (
+              {featuredProducts.slice(0, 8).map((product, index) => (
                 <motion.div
-                  key={product.id}
+                  key={product._id}
                   variants={{
                     initial: { opacity: 0, y: 50 },
                     animate: { opacity: 1, y: 0 },
@@ -600,3 +680,5 @@ export default function Home() {
     </div>
   )
 }
+
+export default Home

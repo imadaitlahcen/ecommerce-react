@@ -11,6 +11,22 @@ interface CartItemProps {
 export function CartItem({ item }: CartItemProps) {
   const { updateQuantity, removeItem } = useCart()
 
+  const handleUpdateQuantity = async (newQuantity: number) => {
+    try {
+      await updateQuantity(item.id || item._id || '', newQuantity)
+    } catch (error) {
+      console.error('Error updating quantity:', error)
+    }
+  }
+
+  const handleRemoveItem = async () => {
+    try {
+      await removeItem(item.id || item._id || '')
+    } catch (error) {
+      console.error('Error removing item:', error)
+    }
+  }
+
   return (
     <div className="flex items-center gap-4 py-4 border-b">
       <div className="relative h-16 w-16 overflow-hidden rounded-md">
@@ -27,7 +43,7 @@ export function CartItem({ item }: CartItemProps) {
           variant="outline"
           size="icon"
           className="h-8 w-8 bg-transparent"
-          onClick={() => updateQuantity(item.id, Math.max(0, item.quantity - 1))}
+          onClick={() => handleUpdateQuantity(Math.max(0, item.quantity - 1))}
         >
           <Minus className="h-3 w-3" />
         </Button>
@@ -38,7 +54,7 @@ export function CartItem({ item }: CartItemProps) {
           variant="outline"
           size="icon"
           className="h-8 w-8 bg-transparent"
-          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+          onClick={() => handleUpdateQuantity(item.quantity + 1)}
         >
           <Plus className="h-3 w-3" />
         </Button>
@@ -52,7 +68,7 @@ export function CartItem({ item }: CartItemProps) {
         variant="ghost"
         size="icon"
         className="h-8 w-8 text-destructive hover:text-destructive"
-        onClick={() => removeItem(item.id)}
+        onClick={handleRemoveItem}
       >
         <Trash2 className="h-4 w-4" />
       </Button>

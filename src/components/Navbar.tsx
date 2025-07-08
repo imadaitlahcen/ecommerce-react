@@ -245,17 +245,19 @@ export function Navbar() {
                       >
                         Profile
                       </Link>
-                      <Link
-                        to="/admin"
-                        className={`block px-3 py-2 text-sm transition-colors duration-150 ${
-                          theme === 'light'
-                            ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                            : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                        }`}
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        Admin Dashboard
-                      </Link>
+                      {user.role === 'admin' && (
+                        <Link
+                          to="/admin"
+                          className={`block px-3 py-2 text-sm transition-colors duration-150 ${
+                            theme === 'light'
+                              ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                              : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                          }`}
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          Admin Dashboard
+                        </Link>
+                      )}
                       <button
                         onClick={handleLogout}
                         className={`w-full text-left px-3 py-2 text-sm transition-colors duration-150 flex items-center ${

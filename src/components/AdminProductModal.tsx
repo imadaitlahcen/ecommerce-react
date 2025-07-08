@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "./ui/button"
 import { Card, CardContent, CardHeader } from "./ui/card"
@@ -8,19 +8,26 @@ import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Textarea } from "./ui/textarea"
-import { X, Upload, Save, Loader2, AlertTriangle, Check } from "lucide-react"
+import { X, Upload, Save, Loader2, AlertTriangle, Check, Image as ImageIcon } from "lucide-react"
 import { useTheme } from "../context/ThemeContext"
+import { useToast } from "../context/ToastContext"
+import { adminProductsApi } from "../services/adminApi"
 import type { Product } from "../data/products"
 
 interface AdminProductModalProps {
   isOpen: boolean
   onClose: () => void
   product: Product | null
+  onSuccess?: () => void
 }
 
-export function AdminProductModal({ isOpen, onClose, product }: AdminProductModalProps) {
+export function AdminProductModal({ isOpen, onClose, product, onSuccess }: AdminProductModalProps) {
   const { theme } = useTheme()
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string>("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -73,6 +80,7 @@ export function AdminProductModal({ isOpen, onClose, product }: AdminProductModa
         tags: product.tags?.join(", ") || "",
         isActive: product.isActive
       })
+      setImagePreview(product.image)
     } else {
       setFormData({
         name: "",
@@ -93,19 +101,107 @@ export function AdminProductModal({ isOpen, onClose, product }: AdminProductModa
         tags: "",
         isActive: true
       })
+      setImagePreview("")
+      setSelectedImage(null)
     }
   }, [product])
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // Vérifier le type de fichier
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Erreur",
+          description: "Veuillez sélectionner un fichier image",
+          variant: "destructive"
+        })
+        return
+      }
+      
+      // Vérifier la taille (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Erreur",
+          description: "La taille de l'image doit être inférieure à 5MB",
+          variant: "destructive"
+        })
+        return
+      }
+
+      setSelectedImage(file)
+      
+      // Créer un aperçu
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+        setFormData(prev => ({ ...prev, image: e.target?.result as string }))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleImageUploadClick = () => {
+    fileInputRef.current?.click()
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    console.log("Saving product:", formData)
-    setIsLoading(false)
-    onClose()
+    try {
+      // Préparer les données pour l'API
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        stock: parseInt(formData.stockQuantity),
+        minStock: parseInt(formData.minStockLevel) || 0,
+        sku: formData.sku,
+        brand: formData.brand,
+        category: formData.category,
+        image: formData.image,
+        images: [formData.image], // Pour l'instant, une seule image
+        weight: parseFloat(formData.weight) || 0,
+        dimensions: formData.dimensions,
+        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
+        isFeatured: false,
+        isOnSale: formData.discount ? parseFloat(formData.discount) > 0 : false,
+        discountPercentage: formData.discount ? parseFloat(formData.discount) : undefined,
+        isActive: formData.isActive
+      }
+
+      if (product) {
+        // Mise à jour du produit existant
+        await adminProductsApi.update(product._id, productData)
+        toast({
+          title: "Succès",
+          description: "Produit mis à jour avec succès",
+          variant: "default"
+        })
+      } else {
+        // Création d'un nouveau produit
+        await adminProductsApi.create(productData)
+        toast({
+          title: "Succès",
+          description: "Produit ajouté avec succès",
+          variant: "default"
+        })
+      }
+
+      // Appeler le callback de succès pour rafraîchir la liste
+      onSuccess?.()
+      onClose()
+    } catch (error) {
+      console.error('Error saving product:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder le produit",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -169,8 +265,62 @@ export function AdminProductModal({ isOpen, onClose, product }: AdminProductModa
                 </motion.h2>
               </CardHeader>
 
-              <CardContent className="p-6">
-                <form onSubmit={handleSubmit} className="space-y-6">
+              <CardContent className="p-6 overflow-y-auto max-h-[60vh]">
+                <form id="product-form" onSubmit={handleSubmit} className="space-y-6">
+                  {/* Image Upload Section */}
+                  <div className="space-y-4">
+                    <Label>Product Image</Label>
+                    <div className="flex items-center space-x-4">
+                      {/* Image Preview */}
+                      <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden">
+                        {imagePreview ? (
+                          <img 
+                            src={imagePreview} 
+                            alt="Preview" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ImageIcon className="h-8 w-8 text-gray-400" />
+                        )}
+                      </div>
+                      
+                      {/* Upload Controls */}
+                      <div className="flex-1 space-y-2">
+                        <div className="flex space-x-2">
+                          <Input
+                            value={formData.image}
+                            onChange={(e) => {
+                              handleInputChange('image', e.target.value)
+                              setImagePreview(e.target.value)
+                            }}
+                            placeholder="Enter image URL or upload file"
+                            className="flex-1"
+                          />
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="icon"
+                            onClick={handleImageUploadClick}
+                          >
+                            <Upload className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {selectedImage ? `Selected: ${selectedImage.name}` : 'Click upload button to select image from your computer'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Product Name */}
                     <div className="space-y-2">
@@ -358,23 +508,6 @@ export function AdminProductModal({ isOpen, onClose, product }: AdminProductModa
                     />
                   </div>
 
-                  {/* Image URL */}
-                  <div className="space-y-2">
-                    <Label htmlFor="image">Image URL</Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        id="image"
-                        value={formData.image}
-                        onChange={(e) => handleInputChange('image', e.target.value)}
-                        placeholder="https://example.com/image.jpg"
-                        required
-                      />
-                      <Button type="button" variant="outline" size="icon">
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
                   {/* Stock Status and Active Status */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex items-center space-x-2">
@@ -440,28 +573,26 @@ export function AdminProductModal({ isOpen, onClose, product }: AdminProductModa
                       </div>
                     </div>
                   )}
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-end space-x-3 pt-6 border-t">
-                    <Button type="button" variant="outline" onClick={onClose}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-2" />
-                          {product ? 'Update Product' : 'Add Product'}
-                        </>
-                      )}
-                    </Button>
-                  </div>
                 </form>
               </CardContent>
+              <div className="flex justify-end space-x-3 p-6 border-t bg-inherit sticky bottom-0 z-10">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" form="product-form" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      {product ? 'Update Product' : 'Add Product'}
+                    </>
+                  )}
+                </Button>
+              </div>
             </Card>
           </motion.div>
         </>

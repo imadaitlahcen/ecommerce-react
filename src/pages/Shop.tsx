@@ -1,184 +1,301 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Navbar } from "../components/Navbar"
-import { Footer } from "../components/Footer"
-import { ProductCard } from "../components/ProductCard"
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
-import { Checkbox } from "../components/ui/checkbox"
-import { Label } from "../components/ui/label"
-import { Separator } from "../components/ui/separator"
-import { Search, Filter } from "lucide-react"
-import { products } from "../data/products"
+import { useSearchParams } from 'react-router-dom';
+import { productsService } from '../services/api';
+import ProductCard from '../components/ProductCard';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Card, CardContent } from '../components/ui/card';
 
-export default function Shop() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000])
-  const [sortBy, setSortBy] = useState("name")
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+  brand: string;
+  isFeatured: boolean;
+  isOnSale: boolean;
+  discountPercentage?: number;
+  rating: number;
+  reviewCount: number;
+  stock: number;
+}
 
-  const categories = Array.from(new Set(products.map((p) => p.category)))
+const Shop: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [brands, setBrands] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Filtres
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand') || '');
+  const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
+  const [sortBy, setSortBy] = useState('name');
 
-  const filteredProducts = useMemo(() => {
-    const filtered = products.filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category)
-      const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1]
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      return matchesSearch && matchesCategory && matchesPrice
-    })
+        // Récupérer les catégories et marques
+        const [categoriesData, brandsData] = await Promise.all([
+          productsService.getCategories(),
+          productsService.getBrands()
+        ]);
+        
+        setCategories(categoriesData);
+        setBrands(brandsData);
 
-    // Sort products
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "price-low":
-          return a.price - b.price
-        case "price-high":
-          return b.price - a.price
-        case "rating":
-          return b.rating - a.rating
-        case "name":
-        default:
-          return a.name.localeCompare(b.name)
+        // Récupérer les produits avec filtres
+        const params: any = {};
+        if (search) params.search = search;
+        if (selectedCategory) params.category = selectedCategory;
+        if (selectedBrand) params.brand = selectedBrand;
+        if (minPrice) params.minPrice = minPrice;
+        if (maxPrice) params.maxPrice = maxPrice;
+
+        const productsData = await productsService.getAll(params);
+        setProducts(productsData);
+      } catch (err: any) {
+        setError(err.message || 'Erreur lors du chargement des produits');
+        console.error('Erreur API:', err);
+      } finally {
+        setIsLoading(false);
       }
-    })
+    };
 
-    return filtered
-  }, [searchQuery, selectedCategories, priceRange, sortBy])
+    fetchData();
+  }, [search, selectedCategory, selectedBrand, minPrice, maxPrice]);
 
-  const handleCategoryChange = (category: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCategories([...selectedCategories, category])
-    } else {
-      setSelectedCategories(selectedCategories.filter((c) => c !== category))
+  // Mettre à jour les paramètres d'URL quand les filtres changent
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (selectedCategory) params.set('category', selectedCategory);
+    if (selectedBrand) params.set('brand', selectedBrand);
+    if (minPrice) params.set('minPrice', minPrice);
+    if (maxPrice) params.set('maxPrice', maxPrice);
+    setSearchParams(params);
+  }, [search, selectedCategory, selectedBrand, minPrice, maxPrice, setSearchParams]);
+
+  // Trier les produits
+  const sortedProducts = [...products].sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'price-low':
+        return a.price - b.price;
+      case 'price-high':
+        return b.price - a.price;
+      case 'rating':
+        return b.rating - a.rating;
+      default:
+        return 0;
     }
+  });
+
+  const clearFilters = () => {
+    setSearch('');
+    setSelectedCategory('');
+    setSelectedBrand('');
+    setMinPrice('');
+    setMaxPrice('');
+    setSortBy('name');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Réessayer
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+              <Navbar />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
 
-      <main className="flex-1">
-        <div className="container py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-4">Shop All Products</h1>
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full lg:w-48">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Name A-Z</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-8"
+        >
+          <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
+            Notre Boutique
+          </h1>
+          <p className="text-slate-600 dark:text-slate-300">
+            Découvrez notre sélection de produits de qualité
+          </p>
+        </motion.div>
 
-          <div className="grid lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-1">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    Filters
-                  </h3>
+        {/* Filtres */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="mb-8"
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                {/* Recherche */}
+                <div className="lg:col-span-2">
+                  <Input
+                    placeholder="Rechercher un produit..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
                 </div>
 
+                {/* Catégorie */}
                 <div>
-                  <h4 className="font-medium mb-3">Categories</h4>
-                  <div className="space-y-2">
-                    {categories.map((category) => (
-                      <div key={category} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={category}
-                          checked={selectedCategories.includes(category)}
-                          onCheckedChange={(checked) => handleCategoryChange(category, checked as boolean)}
-                        />
-                        <Label htmlFor={category} className="capitalize">
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Catégorie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Toutes</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
                           {category}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <Separator />
-
+                {/* Marque */}
                 <div>
-                  <h4 className="font-medium mb-3">Price Range</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        placeholder="Min"
-                        value={priceRange[0]}
-                        onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                        className="w-20"
-                      />
-                      <span>-</span>
-                      <Input
-                        type="number"
-                        placeholder="Max"
-                        value={priceRange[1]}
-                        onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                        className="w-20"
-                      />
-                    </div>
-                  </div>
+                  <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Marque" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Toutes</SelectItem>
+                      {brands.map((brand) => (
+                        <SelectItem key={brand} value={brand}>
+                          {brand}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedCategories([])
-                    setPriceRange([0, 1000])
-                    setSearchQuery("")
-                  }}
-                  className="w-full"
-                >
-                  Clear Filters
+                {/* Prix minimum */}
+                <div>
+                  <Input
+                    type="number"
+                    placeholder="Prix min"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                  />
+                </div>
+
+                {/* Prix maximum */}
+                <div>
+                  <Input
+                    type="number"
+                    placeholder="Prix max"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4 mt-4">
+                {/* Tri */}
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Trier par" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Nom</SelectItem>
+                    <SelectItem value="price-low">Prix croissant</SelectItem>
+                    <SelectItem value="price-high">Prix décroissant</SelectItem>
+                    <SelectItem value="rating">Note</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Effacer les filtres */}
+                <Button variant="outline" onClick={clearFilters}>
+                  Effacer les filtres
                 </Button>
               </div>
-            </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-            <div className="lg:col-span-3">
-              <div className="mb-4 text-sm text-muted-foreground">
-                Showing {filteredProducts.length} of {products.length} products
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-
-              {filteredProducts.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">No products found matching your criteria.</p>
-                </div>
-              )}
-            </div>
+        {/* Résultats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <div className="flex justify-between items-center mb-6">
+            <p className="text-slate-600 dark:text-slate-300">
+              {sortedProducts.length} produit{sortedProducts.length !== 1 ? 's' : ''} trouvé{sortedProducts.length !== 1 ? 's' : ''}
+            </p>
           </div>
-        </div>
-      </main>
 
-      <Footer />
+          {sortedProducts.length === 0 ? (
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+                Aucun produit trouvé
+              </h3>
+              <p className="text-slate-600 dark:text-slate-300 mb-4">
+                Essayez de modifier vos critères de recherche
+              </p>
+              <Button onClick={clearFilters}>
+                Effacer les filtres
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {sortedProducts.map((product, index) => (
+                <motion.div
+                  key={product._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      </div>
     </div>
-  )
-}
+  );
+};
+
+export default Shop;

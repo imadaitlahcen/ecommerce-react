@@ -8,12 +8,33 @@ import { X, ShoppingCart, CreditCard, ArrowLeft, Check } from "lucide-react"
 import { Link } from "react-router-dom"
 import { useTheme } from "../context/ThemeContext"
 import { useCart } from "../context/CartContext"
-import type { Product } from "../data/products"
+
+// Unified interface that works with both static data and API data
+interface UnifiedProduct {
+  id?: number; // For static data
+  _id?: string; // For API data
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+  brand?: string;
+  rating: number;
+  reviewCount?: number;
+  reviews?: number;
+  isFeatured?: boolean;
+  isOnSale?: boolean;
+  discountPercentage?: number;
+  stock?: number;
+  minStock?: number;
+  sku?: string;
+  isActive?: boolean;
+}
 
 interface AddToCartDialogProps {
   isOpen: boolean
   onClose: () => void
-  product: Product | null
+  product: UnifiedProduct | null
 }
 
 export function AddToCartDialog({ isOpen, onClose, product }: AddToCartDialogProps) {

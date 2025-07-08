@@ -1,102 +1,151 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
-import { useNavigate, Link } from "react-router-dom"
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
 import { Navbar } from "../components/Navbar"
 import { Footer } from "../components/Footer"
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Label } from "../components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
-import { useAuth } from "../context/AuthContext"
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from "../context/ToastContext"
-import { Loader } from "../components/Loader"
 
-export default function Login() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const { login, isLoading } = useAuth()
+const Login: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, isLoading, error } = useAuth();
   const { toast } = useToast()
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const success = await login(email, password)
-
-    if (success) {
+    e.preventDefault();
+    
+    if (!email || !password) {
       toast({
-        title: "Welcome back!",
-        description: "You have been successfully logged in.",
-      })
-      navigate("/")
-    } else {
-      toast({
-        title: "Login failed",
-        description: "Please check your credentials and try again.",
-        variant: "destructive",
-      })
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs",
+        variant: "destructive"
+      });
+      return;
     }
-  }
+
+    try {
+      setIsSubmitting(true);
+      await login(email, password);
+      toast({
+        title: "Succès",
+        description: "Connexion réussie !",
+        variant: "default"
+      });
+      navigate('/');
+    } catch (err) {
+      console.error('Erreur de connexion:', err);
+      toast({
+        title: "Erreur",
+        description: "Échec de la connexion. Vérifiez vos identifiants.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
       <main className="flex-1 flex items-center justify-center py-12">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Sign in</CardTitle>
-            <CardDescription className="text-center">
-              Enter your email and password to access your account
-            </CardDescription>
-          </CardHeader>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-md"
+        >
+          <Card className="shadow-xl">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">
+                Connexion
+              </CardTitle>
+              <p className="text-slate-600 dark:text-slate-300">
+                Connectez-vous à votre compte
+              </p>
+            </CardHeader>
+            
+            <CardContent>
+              {error && (
+                <Alert className="mb-4 border-red-200 bg-red-50 dark:bg-red-900/20">
+                  <AlertDescription className="text-red-800 dark:text-red-200">
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              )}
 
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="votre@email.com"
+                    required
+                    className="mt-1"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <div>
+                  <Label htmlFor="password">Mot de passe</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Votre mot de passe"
+                    required
+                    className="mt-1"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  disabled={isLoading || isSubmitting}
+                >
+                  {isLoading || isSubmitting ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Connexion...
+                    </div>
+                  ) : (
+                    'Se connecter'
+                  )}
+                </Button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <p className="text-slate-600 dark:text-slate-300">
+                  Pas encore de compte ?{' '}
+                  <Link
+                    to="/register"
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                  >
+                    Créer un compte
+                  </Link>
+                </p>
               </div>
             </CardContent>
-
-            <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? <Loader size="sm" /> : "Sign In"}
-              </Button>
-
-              <div className="text-sm text-center text-muted-foreground">
-                Don't have an account?{" "}
-                <Link to="/register" className="text-primary hover:underline">
-                  Sign up
-                </Link>
-              </div>
-            </CardFooter>
-          </form>
-        </Card>
+          </Card>
+        </motion.div>
       </main>
 
       <Footer />
     </div>
-  )
-}
+  );
+};
+
+export default Login;

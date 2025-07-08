@@ -1,135 +1,223 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
-import { useNavigate, Link } from "react-router-dom"
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
 import { Navbar } from "../components/Navbar"
 import { Footer } from "../components/Footer"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Alert, AlertDescription } from '../components/ui/alert';
 import { useAuth } from "../context/AuthContext"
 import { useToast } from "../context/ToastContext"
 import { Loader } from "../components/Loader"
+import { AuthDialog } from "../components/AuthDialog"
 
-export default function Register() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const { register, isLoading } = useAuth()
-  const { toast } = useToast()
-  const navigate = useNavigate()
+const Register: React.FC = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    phone: '',
+    address: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { register, error } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (password !== confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
-        variant: "destructive",
-      })
-      return
+    e.preventDefault();
+    
+    if (formData.password !== formData.confirmPassword) {
+      return;
     }
 
-    const success = await register(name, email, password)
-
-    if (success) {
-      toast({
-        title: "Account created!",
-        description: "Your account has been successfully created.",
-      })
-      navigate("/")
-    } else {
-      toast({
-        title: "Registration failed",
-        description: "Please try again with different information.",
-        variant: "destructive",
-      })
+    if (!formData.name || !formData.email || !formData.password) {
+      return;
     }
-  }
+
+    try {
+      setIsSubmitting(true);
+      await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone || undefined,
+        address: formData.address || undefined,
+      });
+      navigate('/');
+    } catch (err) {
+      // L'erreur est déjà gérée dans le contexte
+      console.error('Erreur d\'inscription:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
       <main className="flex-1 flex items-center justify-center py-12">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Create account</CardTitle>
-            <CardDescription className="text-center">Enter your information to create your account</CardDescription>
-          </CardHeader>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-md"
+        >
+          <Card className="shadow-xl">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">
+                Créer un compte
+              </CardTitle>
+              <p className="text-slate-600 dark:text-slate-300">
+                Rejoignez notre communauté
+              </p>
+            </CardHeader>
+            
+            <CardContent>
+              {error && (
+                <Alert className="mb-4 border-red-200 bg-red-50 dark:bg-red-900/20">
+                  <AlertDescription className="text-red-800 dark:text-red-200">
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              )}
 
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Nom complet</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Votre nom complet"
+                    required
+                    className="mt-1"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="votre@email.com"
+                    required
+                    className="mt-1"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Create a password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
+                <div>
+                  <Label htmlFor="phone">Téléphone (optionnel)</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="Votre numéro de téléphone"
+                    className="mt-1"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
+                <div>
+                  <Label htmlFor="address">Adresse (optionnel)</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    type="text"
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder="Votre adresse"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="password">Mot de passe</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Votre mot de passe"
+                    required
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Confirmez votre mot de passe"
+                    required
+                    className="mt-1"
+                  />
+                  {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                    <p className="text-red-600 text-sm mt-1">
+                      Les mots de passe ne correspondent pas
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  disabled={isSubmitting || formData.password !== formData.confirmPassword}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Création du compte...
+                    </div>
+                  ) : (
+                    'Créer un compte'
+                  )}
+                </Button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <p className="text-slate-600 dark:text-slate-300">
+                  Déjà un compte ?{' '}
+                  <Link
+                    to="/login"
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                  >
+                    Se connecter
+                  </Link>
+                </p>
               </div>
             </CardContent>
-
-            <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? <Loader size="sm" /> : "Create Account"}
-              </Button>
-
-              <div className="text-sm text-center text-muted-foreground">
-                Already have an account?{" "}
-                <Link to="/login" className="text-primary hover:underline">
-                  Sign in
-                </Link>
-              </div>
-            </CardFooter>
-          </form>
-        </Card>
+          </Card>
+        </motion.div>
       </main>
 
       <Footer />
     </div>
-  )
-}
+  );
+};
+
+export default Register;

@@ -12,6 +12,14 @@ import { useCart } from "../context/CartContext"
 export default function Cart() {
   const { items, total, clearCart } = useCart()
 
+  const handleClearCart = async () => {
+    try {
+      await clearCart()
+    } catch (error) {
+      console.error('Error clearing cart:', error)
+    }
+  }
+
   if (items.length === 0) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -43,12 +51,12 @@ export default function Cart() {
             <div className="lg:col-span-2">
               <div className="space-y-4">
                 {items.map((item) => (
-                  <CartItem key={item.id} item={item} />
+                  <CartItem key={item.id || item._id} item={item} />
                 ))}
               </div>
 
               <div className="flex justify-between items-center mt-6 pt-6 border-t">
-                <Button variant="outline" onClick={clearCart}>
+                <Button variant="outline" onClick={handleClearCart}>
                   Clear Cart
                 </Button>
                 <Link to="/shop">

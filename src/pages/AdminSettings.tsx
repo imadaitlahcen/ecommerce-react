@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
@@ -18,38 +18,86 @@ import {
   CreditCard,
   Shield,
   Bell,
-  Palette
+  Palette,
+  Loader2,
+  Save
 } from "lucide-react"
 import { useTheme } from "../context/ThemeContext"
+import { useToast } from "../context/ToastContext"
+import { settingsApi, type AdminSettings as SettingsType } from "../services/adminApi"
 import { AdminNavbar } from "../components/AdminNavbar"
 
 export default function AdminSettings() {
   const { theme } = useTheme()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("general")
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [settings, setSettings] = useState<SettingsType>({
+    storeName: "",
+    storeDescription: "",
+    contactEmail: "",
+    contactPhone: "",
+    address: "",
+    website: "",
+    currency: "USD",
+    taxRate: 0,
+    stripeEnabled: false,
+    paypalEnabled: false,
+    cashOnDelivery: false,
+    emailNotifications: false,
+    orderConfirmations: false,
+    lowStockAlerts: false,
+    newUserRegistrations: false
+  })
 
-  // Mock settings data
-  const settings = {
-    general: {
-      storeName: "TechStore",
-      storeDescription: "Your one-stop shop for all things tech",
-      contactEmail: "contact@techstore.com",
-      contactPhone: "+1 (555) 123-4567",
-      address: "123 Tech Street, Silicon Valley, CA 94025",
-      website: "https://techstore.com"
-    },
-    payment: {
-      stripeEnabled: true,
-      paypalEnabled: true,
-      cashOnDelivery: true,
-      currency: "USD",
-      taxRate: 8.5
-    },
-    notifications: {
-      emailNotifications: true,
-      orderConfirmations: true,
-      lowStockAlerts: true,
-      newUserRegistrations: true
+  useEffect(() => {
+    loadSettings()
+  }, [])
+
+  const loadSettings = async () => {
+    try {
+      setLoading(true)
+      const data = await settingsApi.get()
+      setSettings(data)
+    } catch (error) {
+      console.error('Error loading settings:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les paramètres",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
     }
+  }
+
+  const handleSaveSettings = async () => {
+    try {
+      setSaving(true)
+      await settingsApi.update(settings)
+      toast({
+        title: "Succès",
+        description: "Paramètres sauvegardés avec succès",
+        variant: "default"
+      })
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder les paramètres",
+        variant: "destructive"
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleInputChange = (field: keyof SettingsType, value: string | number | boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      [field]: value
+    }))
   }
 
   const tabs = [
@@ -59,6 +107,20 @@ export default function AdminSettings() {
     { id: "appearance", name: "Appearance", icon: Palette },
     { id: "security", name: "Security", icon: Shield }
   ]
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <AdminNavbar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="flex items-center space-x-2">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>Chargement des paramètres...</span>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -73,16 +135,32 @@ export default function AdminSettings() {
               transition={{ duration: 0.5 }}
               className="mb-8"
             >
-              <h1 className={`text-3xl font-bold mb-2 ${
-                theme === 'light' ? 'text-gray-900' : 'text-white'
-              }`}>
-                Settings
-              </h1>
-              <p className={`${
-                theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-              }`}>
-                Configure your store settings and preferences
-              </p>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className={`text-3xl font-bold mb-2 ${
+                    theme === 'light' ? 'text-gray-900' : 'text-white'
+                  }`}>
+                    Settings
+                  </h1>
+                  <p className={`${
+                    theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                  }`}>
+                    Configure your store settings and preferences
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleSaveSettings} 
+                  disabled={saving}
+                  className="flex items-center space-x-2"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  <span>{saving ? 'Saving...' : 'Save Settings'}</span>
+                </Button>
+              </div>
             </motion.div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -149,7 +227,8 @@ export default function AdminSettings() {
                           <Label htmlFor="storeName">Store Name</Label>
                           <Input
                             id="storeName"
-                            defaultValue={settings.general.storeName}
+                            value={settings.storeName}
+                            onChange={(e) => handleInputChange('storeName', e.target.value)}
                             className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
                           />
                         </div>
@@ -158,7 +237,8 @@ export default function AdminSettings() {
                           <Input
                             id="contactEmail"
                             type="email"
-                            defaultValue={settings.general.contactEmail}
+                            value={settings.contactEmail}
+                            onChange={(e) => handleInputChange('contactEmail', e.target.value)}
                             className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
                           />
                         </div>
@@ -166,7 +246,8 @@ export default function AdminSettings() {
                           <Label htmlFor="contactPhone">Contact Phone</Label>
                           <Input
                             id="contactPhone"
-                            defaultValue={settings.general.contactPhone}
+                            value={settings.contactPhone}
+                            onChange={(e) => handleInputChange('contactPhone', e.target.value)}
                             className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
                           />
                         </div>
@@ -174,7 +255,8 @@ export default function AdminSettings() {
                           <Label htmlFor="website">Website</Label>
                           <Input
                             id="website"
-                            defaultValue={settings.general.website}
+                            value={settings.website}
+                            onChange={(e) => handleInputChange('website', e.target.value)}
                             className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
                           />
                         </div>
@@ -183,7 +265,8 @@ export default function AdminSettings() {
                         <Label htmlFor="storeDescription">Store Description</Label>
                         <Textarea
                           id="storeDescription"
-                          defaultValue={settings.general.storeDescription}
+                          value={settings.storeDescription}
+                          onChange={(e) => handleInputChange('storeDescription', e.target.value)}
                           rows={3}
                           className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
                         />
@@ -192,13 +275,11 @@ export default function AdminSettings() {
                         <Label htmlFor="address">Store Address</Label>
                         <Textarea
                           id="address"
-                          defaultValue={settings.general.address}
+                          value={settings.address}
+                          onChange={(e) => handleInputChange('address', e.target.value)}
                           rows={2}
                           className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
                         />
-                      </div>
-                      <div className="flex justify-end">
-                        <Button>Save Changes</Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -217,61 +298,75 @@ export default function AdminSettings() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="space-y-4">
-                        <h3 className={`font-semibold ${
-                          theme === 'light' ? 'text-gray-900' : 'text-white'
-                        }`}>Payment Methods</h3>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <input type="checkbox" defaultChecked={settings.payment.stripeEnabled} />
-                              <span className={`font-medium ${
-                                theme === 'light' ? 'text-gray-900' : 'text-white'
-                              }`}>Stripe</span>
-                            </div>
-                            <Badge className="bg-green-100 text-green-800">Enabled</Badge>
-                          </div>
-                          <div className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <input type="checkbox" defaultChecked={settings.payment.paypalEnabled} />
-                              <span className={`font-medium ${
-                                theme === 'light' ? 'text-gray-900' : 'text-white'
-                              }`}>PayPal</span>
-                            </div>
-                            <Badge className="bg-green-100 text-green-800">Enabled</Badge>
-                          </div>
-                          <div className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <input type="checkbox" defaultChecked={settings.payment.cashOnDelivery} />
-                              <span className={`font-medium ${
-                                theme === 'light' ? 'text-gray-900' : 'text-white'
-                              }`}>Cash on Delivery</span>
-                            </div>
-                            <Badge className="bg-green-100 text-green-800">Enabled</Badge>
-                          </div>
-                        </div>
-                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="currency">Currency</Label>
-                          <Input
+                          <select
                             id="currency"
-                            defaultValue={settings.payment.currency}
-                            className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
-                          />
+                            value={settings.currency}
+                            onChange={(e) => handleInputChange('currency', e.target.value)}
+                            className={`w-full p-2 border rounded-md ${
+                              theme === 'light' ? 'bg-white border-gray-300' : 'bg-gray-700 border-gray-600'
+                            }`}
+                          >
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="CAD">CAD (C$)</option>
+                          </select>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="taxRate">Tax Rate (%)</Label>
                           <Input
                             id="taxRate"
                             type="number"
-                            defaultValue={settings.payment.taxRate}
+                            step="0.1"
+                            value={settings.taxRate}
+                            onChange={(e) => handleInputChange('taxRate', parseFloat(e.target.value) || 0)}
                             className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
                           />
                         </div>
                       </div>
-                      <div className="flex justify-end">
-                        <Button>Save Changes</Button>
+                      
+                      <div className="space-y-4">
+                        <h3 className={`font-medium ${
+                          theme === 'light' ? 'text-gray-900' : 'text-white'
+                        }`}>Payment Methods</h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              id="stripeEnabled"
+                              checked={settings.stripeEnabled}
+                              onChange={(e) => handleInputChange('stripeEnabled', e.target.checked)}
+                              className="rounded"
+                            />
+                            <Label htmlFor="stripeEnabled">Enable Stripe Payments</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              id="paypalEnabled"
+                              checked={settings.paypalEnabled}
+                              onChange={(e) => handleInputChange('paypalEnabled', e.target.checked)}
+                              className="rounded"
+                            />
+                            <Label htmlFor="paypalEnabled">Enable PayPal</Label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              id="cashOnDelivery"
+                              checked={settings.cashOnDelivery}
+                              onChange={(e) => handleInputChange('cashOnDelivery', e.target.checked)}
+                              className="rounded"
+                            />
+                            <Label htmlFor="cashOnDelivery">Enable Cash on Delivery</Label>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -291,66 +386,55 @@ export default function AdminSettings() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                       <div className="space-y-4">
-                        <h3 className={`font-semibold ${
+                        <h3 className={`font-medium ${
                           theme === 'light' ? 'text-gray-900' : 'text-white'
                         }`}>Email Notifications</h3>
+                        
                         <div className="space-y-3">
-                          <div className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <input type="checkbox" defaultChecked={settings.notifications.emailNotifications} />
-                              <div>
-                                <span className={`font-medium ${
-                                  theme === 'light' ? 'text-gray-900' : 'text-white'
-                                }`}>Email Notifications</span>
-                                <p className={`text-sm ${
-                                  theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                                }`}>Receive notifications via email</p>
-                              </div>
-                            </div>
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              id="emailNotifications"
+                              checked={settings.emailNotifications}
+                              onChange={(e) => handleInputChange('emailNotifications', e.target.checked)}
+                              className="rounded"
+                            />
+                            <Label htmlFor="emailNotifications">Enable Email Notifications</Label>
                           </div>
-                          <div className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <input type="checkbox" defaultChecked={settings.notifications.orderConfirmations} />
-                              <div>
-                                <span className={`font-medium ${
-                                  theme === 'light' ? 'text-gray-900' : 'text-white'
-                                }`}>Order Confirmations</span>
-                                <p className={`text-sm ${
-                                  theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                                }`}>Send order confirmation emails</p>
-                              </div>
-                            </div>
+                          
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              id="orderConfirmations"
+                              checked={settings.orderConfirmations}
+                              onChange={(e) => handleInputChange('orderConfirmations', e.target.checked)}
+                              className="rounded"
+                            />
+                            <Label htmlFor="orderConfirmations">Order Confirmations</Label>
                           </div>
-                          <div className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <input type="checkbox" defaultChecked={settings.notifications.lowStockAlerts} />
-                              <div>
-                                <span className={`font-medium ${
-                                  theme === 'light' ? 'text-gray-900' : 'text-white'
-                                }`}>Low Stock Alerts</span>
-                                <p className={`text-sm ${
-                                  theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                                }`}>Get notified when products are low in stock</p>
-                              </div>
-                            </div>
+                          
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              id="lowStockAlerts"
+                              checked={settings.lowStockAlerts}
+                              onChange={(e) => handleInputChange('lowStockAlerts', e.target.checked)}
+                              className="rounded"
+                            />
+                            <Label htmlFor="lowStockAlerts">Low Stock Alerts</Label>
                           </div>
-                          <div className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <input type="checkbox" defaultChecked={settings.notifications.newUserRegistrations} />
-                              <div>
-                                <span className={`font-medium ${
-                                  theme === 'light' ? 'text-gray-900' : 'text-white'
-                                }`}>New User Registrations</span>
-                                <p className={`text-sm ${
-                                  theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                                }`}>Notify when new users register</p>
-                              </div>
-                            </div>
+                          
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              id="newUserRegistrations"
+                              checked={settings.newUserRegistrations}
+                              onChange={(e) => handleInputChange('newUserRegistrations', e.target.checked)}
+                              className="rounded"
+                            />
+                            <Label htmlFor="newUserRegistrations">New User Registrations</Label>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex justify-end">
-                        <Button>Save Changes</Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -369,54 +453,12 @@ export default function AdminSettings() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="space-y-4">
-                        <h3 className={`font-semibold ${
-                          theme === 'light' ? 'text-gray-900' : 'text-white'
-                        }`}>Theme Settings</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label>Primary Color</Label>
-                            <div className="flex items-center space-x-2">
-                              <input type="color" defaultValue="#3B82F6" className="w-12 h-10 rounded border" />
-                              <Input defaultValue="#3B82F6" className={theme === 'light' ? 'bg-white' : 'bg-gray-700'} />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Secondary Color</Label>
-                            <div className="flex items-center space-x-2">
-                              <input type="color" defaultValue="#6B7280" className="w-12 h-10 rounded border" />
-                              <Input defaultValue="#6B7280" className={theme === 'light' ? 'bg-white' : 'bg-gray-700'} />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <h3 className={`font-semibold ${
-                          theme === 'light' ? 'text-gray-900' : 'text-white'
-                        }`}>Logo & Branding</h3>
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label>Store Logo</Label>
-                            <div className="flex items-center space-x-4">
-                              <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                                <span className="text-gray-500">Logo</span>
-                              </div>
-                              <Button variant="outline">Upload Logo</Button>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Favicon</Label>
-                            <div className="flex items-center space-x-4">
-                              <div className="w-8 h-8 border-2 border-dashed border-gray-300 rounded flex items-center justify-center">
-                                <span className="text-xs text-gray-500">F</span>
-                              </div>
-                              <Button variant="outline">Upload Favicon</Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-end">
-                        <Button>Save Changes</Button>
+                      <div className="text-center py-8">
+                        <p className={`${
+                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                        }`}>
+                          Appearance settings will be available soon.
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -435,76 +477,12 @@ export default function AdminSettings() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="space-y-4">
-                        <h3 className={`font-semibold ${
-                          theme === 'light' ? 'text-gray-900' : 'text-white'
-                        }`}>Password Policy</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="minPasswordLength">Minimum Password Length</Label>
-                            <Input
-                              id="minPasswordLength"
-                              type="number"
-                              defaultValue="8"
-                              className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="passwordExpiry">Password Expiry (days)</Label>
-                            <Input
-                              id="passwordExpiry"
-                              type="number"
-                              defaultValue="90"
-                              className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <h3 className={`font-semibold ${
-                          theme === 'light' ? 'text-gray-900' : 'text-white'
-                        }`}>Two-Factor Authentication</h3>
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <input type="checkbox" />
-                            <div>
-                              <span className={`font-medium ${
-                                theme === 'light' ? 'text-gray-900' : 'text-white'
-                              }`}>Enable 2FA for Admin</span>
-                              <p className={`text-sm ${
-                                theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                              }`}>Require two-factor authentication for admin access</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <h3 className={`font-semibold ${
-                          theme === 'light' ? 'text-gray-900' : 'text-white'
-                        }`}>Session Management</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-                            <Input
-                              id="sessionTimeout"
-                              type="number"
-                              defaultValue="30"
-                              className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="maxLoginAttempts">Max Login Attempts</Label>
-                            <Input
-                              id="maxLoginAttempts"
-                              type="number"
-                              defaultValue="5"
-                              className={theme === 'light' ? 'bg-white' : 'bg-gray-700'}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-end">
-                        <Button>Save Changes</Button>
+                      <div className="text-center py-8">
+                        <p className={`${
+                          theme === 'light' ? 'text-gray-600' : 'text-gray-400'
+                        }`}>
+                          Security settings will be available soon.
+                        </p>
                       </div>
                     </CardContent>
                   </Card>

@@ -10,31 +10,79 @@ import { useState } from "react"
 import { useTheme } from "../context/ThemeContext"
 import { useLikes } from "../context/LikesContext"
 import { useCart } from "../context/CartContext"
+import { useAuth } from "../context/AuthContext"
+import { useToast } from "../context/ToastContext"
 import { AddToCartDialog } from "./AddToCartDialog"
-import type { Product } from "../data/products"
+
+// Unified interface that works with both static data and API data
+interface UnifiedProduct {
+  id?: number; // For static data
+  _id?: string; // For API data
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+  brand?: string;
+  rating: number;
+  reviewCount?: number;
+  reviews?: number;
+  isFeatured?: boolean;
+  isOnSale?: boolean;
+  discountPercentage?: number;
+  stock?: number;
+  minStock?: number;
+  sku?: string;
+  isActive?: boolean;
+}
 
 interface ProductCardProps {
-  product: Product
+  product: UnifiedProduct
 }
 
 export function ProductCard({ product }: ProductCardProps) {
   const { theme } = useTheme()
   const { isLiked, toggleLike } = useLikes()
   const { addItem } = useCart()
+  const { user } = useAuth()
+  const { toast } = useToast()
   const [showDialog, setShowDialog] = useState(false)
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  // Get the correct ID (either id or _id)
+  const productId = product.id || product._id || ''
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    console.log('Add to cart clicked for product:', product.name, product.id)
-    addItem(product)
-    setShowDialog(true)
+    
+    // Vérifier si l'utilisateur est connecté
+    if (!user) {
+      toast({
+        title: "Connexion requise",
+        description: "Veuillez vous connecter pour ajouter des produits au panier",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    console.log('Add to cart clicked for product:', product.name, productId)
+    try {
+      await addItem(product)
+      setShowDialog(true)
+    } catch (error) {
+      console.error('Error adding item to cart:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter le produit au panier",
+        variant: "destructive"
+      })
+    }
   }
 
   const handleLikeClick = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    toggleLike(product.id)
+    toggleLike(productId)
   }
 
   return (
@@ -51,7 +99,7 @@ export function ProductCard({ product }: ProductCardProps) {
         }`}>
           <CardHeader className="p-0">
             <div className="relative overflow-hidden">
-              <Link to={`/product/${product.id}`}>
+              <Link to={`/product/${productId}`}>
                 <img
                   src={product.image}
                   alt={product.name}
@@ -67,12 +115,12 @@ export function ProductCard({ product }: ProductCardProps) {
                   theme === 'light'
                     ? 'bg-white/90 hover:bg-white text-gray-600 hover:text-red-500'
                     : 'bg-gray-800/90 hover:bg-gray-800 text-gray-400 hover:text-red-400'
-                } ${isLiked(product.id) ? 'text-red-500' : ''}`}
+                } ${isLiked(productId) ? 'text-red-500' : ''}`}
                 onClick={handleLikeClick}
                 aria-label="Toggle like"
               >
                 <Heart className={`h-4 w-4 transition-all duration-200 ${
-                  isLiked(product.id) ? 'fill-current' : ''
+                  isLiked(productId) ? 'fill-current' : ''
                 }`} />
               </Button>
 
@@ -86,7 +134,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </CardHeader>
 
           <CardContent className="p-4">
-            <Link to={`/product/${product.id}`}>
+            <Link to={`/product/${productId}`}>
               <h3 className={`font-semibold text-lg mb-2 line-clamp-2 transition-colors duration-200 ${
                 theme === 'light'
                   ? 'text-gray-900 group-hover:text-gray-700'
@@ -141,7 +189,7 @@ export function ProductCard({ product }: ProductCardProps) {
               size="lg"
             >
               <ShoppingCart className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200" />
-              Add to Cart
+              {user ? 'Add to Cart' : 'Sign in to Add'}
             </Button>
           </CardFooter>
         </Card>
@@ -156,3 +204,5 @@ export function ProductCard({ product }: ProductCardProps) {
     </>
   )
 }
+
+export default ProductCard;

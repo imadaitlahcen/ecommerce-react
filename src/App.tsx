@@ -4,6 +4,7 @@ import { AuthProvider } from "./context/AuthContext"
 import { ToastProvider } from "./context/ToastContext"
 import { ThemeProvider } from "./context/ThemeContext"
 import { LikesProvider } from "./context/LikesContext"
+import { AdminRoute } from "./components/AdminRoute"
 import Home from "./pages/Home"
 import Shop from "./pages/Shop"
 import ProductDetail from "./pages/ProductDetail"
@@ -38,12 +39,36 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/liked" element={<LikedProducts />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin/products" element={<AdminProducts />} />
-                <Route path="/admin/orders" element={<AdminOrders />} />
-                <Route path="/admin/users" element={<AdminUsers />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
+                <Route path="/admin" element={
+                  <AdminRoute>
+                    <Admin />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/dashboard" element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/products" element={
+                  <AdminRoute>
+                    <AdminProducts />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/orders" element={
+                  <AdminRoute>
+                    <AdminOrders />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <AdminRoute>
+                    <AdminUsers />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/settings" element={
+                  <AdminRoute>
+                    <AdminSettings />
+                  </AdminRoute>
+                } />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </ToastProvider>

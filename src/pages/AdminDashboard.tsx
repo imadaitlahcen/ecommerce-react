@@ -20,34 +20,41 @@ import {
   RotateCcw
 } from "lucide-react"
 import { useTheme } from "../context/ThemeContext"
-import { products } from "../data/products"
 import { AdminProductModal } from "../components/AdminProductModal"
 import { AdminNavbar } from "../components/AdminNavbar"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { dashboardApi} from "../services/adminApi"
+import { useToast } from "../context/ToastContext"
+import type { AdminStats } from '../services/adminApi'
+import { Loader } from "../components/Loader"
 
 export default function AdminDashboard() {
   const { theme } = useTheme()
+  const { toast } = useToast()
   const [showProductModal, setShowProductModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
+  const [stats, setStats] = useState<AdminStats | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // Mock data for admin dashboard
-  const stats = {
-    totalUsers: 1247,
-    totalProducts: products.length,
-    totalOrders: 89,
-    totalRevenue: 15420.50,
-    stockStats: {
-      totalItems: products.reduce((sum, p) => sum + p.stockQuantity, 0),
-      lowStockItems: products.filter(p => p.status === 'low-stock').length,
-      outOfStockItems: products.filter(p => p.status === 'out-of-stock').length,
-      availableItems: products.filter(p => p.status === 'available').length
-    },
-    recentOrders: [
-      { id: 1, customer: "John Doe", amount: 299.99, status: "completed", date: "2024-01-15" },
-      { id: 2, customer: "Jane Smith", amount: 149.99, status: "pending", date: "2024-01-14" },
-      { id: 3, customer: "Mike Johnson", amount: 89.99, status: "shipped", date: "2024-01-13" },
-      { id: 4, customer: "Sarah Wilson", amount: 199.99, status: "completed", date: "2024-01-12" },
-    ]
+  useEffect(() => {
+    loadStats()
+  }, [])
+
+  const loadStats = async () => {
+    try {
+      setLoading(true)
+      const data = await dashboardApi.getStats()
+      setStats(data)
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les statistiques du dashboard",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleEditProduct = (product: any) => {
@@ -67,6 +74,17 @@ export default function AdminDashboard() {
       case "shipped": return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
       default: return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <AdminNavbar />
+        <main className="flex-1 flex items-center justify-center">
+          <Loader />
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -116,7 +134,7 @@ export default function AdminDashboard() {
             <div className={`text-2xl font-bold ${
               theme === 'light' ? 'text-gray-900' : 'text-white'
             }`}>
-              {stats.totalUsers.toLocaleString()}
+              {stats ? stats.totalUsers.toLocaleString() : 0}
             </div>
             <p className={`text-xs ${
               theme === 'light' ? 'text-gray-600' : 'text-gray-400'
@@ -141,7 +159,7 @@ export default function AdminDashboard() {
             <div className={`text-2xl font-bold ${
               theme === 'light' ? 'text-gray-900' : 'text-white'
             }`}>
-              {stats.totalProducts}
+              {stats ? stats.totalProducts.toLocaleString() : 0}
             </div>
             <p className={`text-xs ${
               theme === 'light' ? 'text-gray-600' : 'text-gray-400'
@@ -166,7 +184,7 @@ export default function AdminDashboard() {
             <div className={`text-2xl font-bold ${
               theme === 'light' ? 'text-gray-900' : 'text-white'
             }`}>
-              {stats.totalOrders}
+              {stats ? stats.totalOrders.toLocaleString() : 0}
             </div>
             <p className={`text-xs ${
               theme === 'light' ? 'text-gray-600' : 'text-gray-400'
@@ -191,7 +209,7 @@ export default function AdminDashboard() {
             <div className={`text-2xl font-bold ${
               theme === 'light' ? 'text-gray-900' : 'text-white'
             }`}>
-              ${stats.totalRevenue.toLocaleString()}
+              ${stats ? stats.totalRevenue.toLocaleString() : 0}
             </div>
             <p className={`text-xs ${
               theme === 'light' ? 'text-gray-600' : 'text-gray-400'
@@ -226,25 +244,27 @@ export default function AdminDashboard() {
               }`}>Total Items</span>
               <span className={`font-semibold ${
                 theme === 'light' ? 'text-gray-900' : 'text-white'
-              }`}>{stats.stockStats.totalItems}</span>
+              }`}>
+                {stats && stats.stockStats ? stats.stockStats.totalItems : 0}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className={`${
                 theme === 'light' ? 'text-gray-600' : 'text-gray-400'
               }`}>Available</span>
-              <span className="font-semibold text-green-600">{stats.stockStats.availableItems}</span>
+              <span className="font-semibold text-green-600">{stats && stats.stockStats ? stats.stockStats.availableItems : 0}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className={`${
                 theme === 'light' ? 'text-gray-600' : 'text-gray-400'
               }`}>Low Stock</span>
-              <span className="font-semibold text-yellow-600">{stats.stockStats.lowStockItems}</span>
+              <span className="font-semibold text-yellow-600">{stats && stats.stockStats ? stats.stockStats.lowStockItems : 0}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className={`${
                 theme === 'light' ? 'text-gray-600' : 'text-gray-400'
               }`}>Out of Stock</span>
-              <span className="font-semibold text-red-600">{stats.stockStats.outOfStockItems}</span>
+              <span className="font-semibold text-red-600">{stats && stats.stockStats ? stats.stockStats.outOfStockItems : 0}</span>
             </div>
           </CardContent>
         </Card>
@@ -261,26 +281,30 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {stats.recentOrders.map((order) => (
-                <div key={order.id} className="flex justify-between items-center">
-                  <div>
-                    <p className={`font-medium ${
-                      theme === 'light' ? 'text-gray-900' : 'text-white'
-                    }`}>{order.customer}</p>
-                    <p className={`text-sm ${
-                      theme === 'light' ? 'text-gray-500' : 'text-gray-400'
-                    }`}>{order.date}</p>
+              {stats && stats.recentOrders && stats.recentOrders.length > 0 ? (
+                stats.recentOrders.map((order) => (
+                  <div key={order.id} className="flex justify-between items-center">
+                    <div>
+                      <p className={`font-medium ${
+                        theme === 'light' ? 'text-gray-900' : 'text-white'
+                      }`}>{order.customer}</p>
+                      <p className={`text-sm ${
+                        theme === 'light' ? 'text-gray-500' : 'text-gray-400'
+                      }`}>{order.date}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-semibold ${
+                        theme === 'light' ? 'text-gray-900' : 'text-white'
+                      }`}>${order.amount}</p>
+                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}`}>
+                        {order.status}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`font-semibold ${
-                      theme === 'light' ? 'text-gray-900' : 'text-white'
-                    }`}>${order.amount}</p>
-                    <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}`}>
-                      {order.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="text-center text-gray-400">No recent orders</div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -307,64 +331,27 @@ export default function AdminDashboard() {
                 }`}>Add Product</h3>
                 <p className={`text-sm ${
                   theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                }`}>Create new product listing</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={`${
-          theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-800 border-gray-700'
-        }`}>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <h3 className={`font-semibold ${
-                  theme === 'light' ? 'text-gray-900' : 'text-white'
-                }`}>View Users</h3>
-                <p className={`text-sm ${
-                  theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                }`}>Manage customer accounts</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={`${
-          theme === 'light' ? 'bg-white border-gray-200' : 'bg-gray-800 border-gray-700'
-        }`}>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <ShoppingCart className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <h3 className={`font-semibold ${
-                  theme === 'light' ? 'text-gray-900' : 'text-white'
-                }`}>View Orders</h3>
-                <p className={`text-sm ${
-                  theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                }`}>Process and track orders</p>
+                }`}>
+                  Add a new product to your inventory
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Product Modal */}
+      {/* Modals */}
       {showProductModal && (
         <AdminProductModal
           isOpen={showProductModal}
           onClose={() => setShowProductModal(false)}
           product={editingProduct}
+          onSuccess={loadStats}
         />
       )}
-          </div>
-        </main>
-      </div>
-    </>
+    </div>
+  </main>
+</div>
+</>
   )
-} 
+}
